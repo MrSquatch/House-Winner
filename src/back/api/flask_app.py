@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from flask import Flask, request, abort, jsonify
 from flask_cors import CORS # Agregar CORS
@@ -275,7 +276,7 @@ def buscar_libro():
             pathPortada = f"/backend/database/data/libros_portadas/{libro[0]}.jpg"
             descrip = libro[3] if libro[3]!=None else ''
 
-            libro = {
+            libro_dict = {
                 'id_libro': libro[0],
                 'isbn': libro[1],
                 'titulo': libro[2],
@@ -286,7 +287,7 @@ def buscar_libro():
                 'estado': libro[7],
                 'pathPortada' : pathPortada
             }
-            libros.append(libro)
+            libros.append(libro_dict)
 
         # Contar la cantidad de libros encontrados
         cantidad_libros = len(libros)
@@ -385,7 +386,7 @@ def insertar_pupitres():
         csv_path = os.path.join(file_path, data_path, 'pupitres.csv')
 
         # Cargar el archivo CSV en un DataFrame de Pandas
-        df = pd.read_csv(csv_path, delimiter='\t', encoding='latin-1')
+        df = pd.read_csv(csv_path, delimiter='\t', encoding='utf-8')
 
         # Conexión al cursor de la base de datos
         cur = mysql.connection.cursor()
@@ -420,7 +421,7 @@ def insertar_solicitudes():
         csv_path = os.path.join(file_path, data_path, 'solicitudes.csv')
 
         # Cargar el archivo CSV en un DataFrame de Pandas
-        df = pd.read_csv(csv_path, delimiter='\t', encoding='latin-1')
+        df = pd.read_csv(csv_path, delimiter='\t', encoding='utf-8')
 
         # Conexión al cursor de la base de datos
         cur = mysql.connection.cursor()
@@ -463,7 +464,7 @@ def insertar_pupitre_solicitud():
         csv_path = os.path.join(file_path, data_path, 'pupitre_solicitud.csv')
 
         # Cargar el archivo CSV en un DataFrame de Pandas
-        df = pd.read_csv(csv_path, delimiter='\t', encoding='latin-1')
+        df = pd.read_csv(csv_path, delimiter='\t', encoding='utf-8')
 
         # Conexión al cursor de la base de datos
         cur = mysql.connection.cursor()
@@ -491,6 +492,102 @@ def insertar_pupitre_solicitud():
 
     except Exception as e:
         return f'Error al cargar los datos de PUPITRE_SOLICITUD: {str(e)}'
+
+@app.route('/api/obtener_solicitudes/pupitres', methods=['POST'])
+def solicitudes_pupitres():
+    try:
+        # Obtener el JSON del cuerpo de la solicitud
+        data = request.get_json()
+
+        # Lista de campos permitidos
+        if not (len(data)==1 and 'tipo' in data):
+            abort(400, f'El JSON debe contener solamente el campo "tipo"')
+        
+        valores_aceptados = ['P','C','L']
+        if data['tipo'] not in valores_aceptados:
+            abort(400, f'El campo "tipo" solo puede ser uno de los'+
+                        f'siguientes valores: {", ".join(valores_aceptados)}')
+
+        # Realizar query dependiendo del campo presente
+        tipo_solicitud = data['tipo']
+        cur = mysql.connection.cursor()
+
+        query = f"""
+        SELECT a.cod_alumno,a.nombres,a.apellidos,escuela_prof,justif_solic,
+                cod_admin,adm.nombres,adm.apellidos,adm.cargo,observ_solic,
+                p.id_pupitre,ubicacion,estado,
+                fecha_solicitud,estado_solic
+        FROM 
+            pupitre_solicitud AS ps
+        JOIN 
+            solicitudes AS s ON ps.id_solicitud = s.id_solicitud
+        JOIN 
+            pupitres AS p ON ps.id_pupitre = p.id_pupitre
+        JOIN 
+            alumnos AS a ON a.cod_alumno = s.cod_alumno
+        JOIN 
+            administradores AS adm ON adm.cod_admin = s.admin_encargado
+        WHERE 
+            s.tipo_solic = '{tipo_solicitud}';
+        """
+        cur.execute(query)
+
+        # Obtener los resultados de la consulta
+        resultados = cur.fetchall()
+
+        print(resultados)
+
+        # Cerrar cursor
+        cur.close()
+
+        # Si no se encontraron resultados, retornar un mensaje adecuado
+        if not resultados:
+            return jsonify({'mensaje': f'No se encontraron solicitudes que'+
+                            f'coincidan con el tipo de solicitud: "{tipo_solicitud}"'}), 404
+
+        # Convertir resultados a una lista de diccionarios
+        solicitudes = []
+        for solicitud in resultados:
+            admin_observ = solicitud[9] if pd.notna(solicitud[9]) else 'No hay observaciones aún'
+
+            # Reformatea la fecha al formato deseado
+            fecha_dt = solicitud[13]
+            fecha_formateada = fecha_dt.strftime('%d-%m-%Y')           
+
+            solicitud_dict = {
+                'alumno':{
+                    'cod_alumno':solicitud[0],
+                    'nombres':solicitud[1],
+                    'apellidos':solicitud[2],
+                    'escuela_prof':solicitud[3],
+                    'justif_solic':solicitud[4],
+                },
+                'admin':{
+                    'cod_admin':solicitud[5],
+                    'nombres':solicitud[6],
+                    'apellidos':solicitud[7],
+                    'cargo':solicitud[8],
+                    'observ_solic':admin_observ,
+                },
+                'pupitre':{
+                    'id_pupitre':solicitud[10],
+                    'ubicacion':solicitud[11],
+                    'estado':solicitud[12],
+
+                },
+                'fecha_solicitud':fecha_formateada,
+                'estado_solic':solicitud[14],
+            }
+            solicitudes.append(solicitud_dict)
+
+        # Contar la cantidad de solicitudes encontradas
+        cantidad_solicitudes = len(solicitudes)
+
+        # Devolver los resultados en formato JSON incluyendo la cantidad de libros
+        return jsonify({'cantidad_solicitudes': cantidad_solicitudes, 'solicitudes': solicitudes})
+
+    except Exception as e:
+        return f'Error al recuperar las solicitudes: {str(e)}', 500
 
 # ============================================================
 
