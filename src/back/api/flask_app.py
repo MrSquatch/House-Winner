@@ -273,7 +273,7 @@ def buscar_libro():
         # Convertir resultados a una lista de diccionarios
         libros = []
         for libro in resultados:
-            pathPortada = f"/backend/database/data/libros_portadas/{libro[0]}.jpg"
+            pathPortada = f"/back/database/data/libros_portadas/{libro[0]}.jpg"
             descrip = libro[3] if libro[3]!=None else ''
 
             libro_dict = {
