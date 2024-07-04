@@ -234,29 +234,28 @@
     }
     
     async function borraLibro() {
-      const isbn = document.getElementById('isbn-buscar').value;
-    
+    const isbn = document.getElementById('isbn').value;
+
       try {
-        const response = await fetch('http://127.0.0.1:5000/api/editarCatalogo', {
+        const response = await fetch('http://127.0.0.1:5000/api/eliminarLibro', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ tipo: 'delete(supongo)' })
+          body: JSON.stringify({ isbn: isbn })
         });
-    
-        const data = await response.json();
-    
-        if (response.ok) {
-          alert(data.message);
-          // Acá veremos qué hacemos
 
-        } else {
-          alert(`Error: ${data.message}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Error al eliminar el libro');
         }
+
+        const data = await response.json();
+        alert(data.message);
+        location.reload(); // Recargar la página
       } catch (error) {
-        console.error('Error: ', error);
-        alert('No funciona WAAAA');
+        console.error('Error:', error);
+        alert('Error al intentar eliminar el libro: ' + error.message);
       }
     }
     </script>

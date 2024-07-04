@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Open+Sans&display=swap"
       rel="stylesheet"
@@ -90,8 +90,9 @@
                 <th>Código</th>
                 <th>Nro</th>
                 <th>Fecha de reserva</th>
-                <th>Hora de inicio</th>
-                <th>Hora final</th>
+                <th>Admin Encargado</th>
+                <th>Estado</th>
+                <th>Detalles</th>
               </tr>
             </thead>
             <tbody id="tableBody">
@@ -100,6 +101,27 @@
           </table>
         </div>
       </div>
+      <div class="modal fade" id="modalDetalles" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="exampleModalLabel">Detalles</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p id="justif_solic"></p>
+            </div>
+            <div class="modal-body">
+              <p id="observ_solic"></p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    
+
     </main>
 
     <div id="footer-placeholder"></div>
@@ -137,10 +159,17 @@
                 <td>${solicitud.alumno.cod_alumno}</td>
                 <td>${solicitud.pupitre.id_pupitre}</td>
                 <td>${solicitud.fecha_solicitud}</td>
+                <td>${solicitud.admin.nombres} ${solicitud.admin.apellidos}</td>
                 <td>${solicitud.estado_solic}</td>
-                <td>${solicitud.estado_solic}</td>
+                <td><button type="button" class="btn btn-primary detalles-btn" data-toggle="modal" data-target="#modalDetalles" data-justif="${solicitud.alumno.justif_solic}" data-observ="${solicitud.admin.observ_solic}">Detalles</button></td>
               `;
               tableBody.appendChild(row);
+            });
+            $('.detalles-btn').click(function() {
+              var justifSolic = $(this).data('justif');
+              var observSolic = $(this).data('observ');
+              $('#justif_solic').text('Justificación: ' + justifSolic);
+              $('#observ_solic').text('Observaciones: ' + observSolic);
             });
           })
           .catch(error => {
