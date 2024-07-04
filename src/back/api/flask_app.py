@@ -310,7 +310,7 @@ def editar_catalogo():
         input = request.get_json()
 
         if not (len(input) == 2 and 'tipo' in input and 'columnas' in input):
-            abort(400, f'El JSON debe debe tener "tipo" y "columnas"')
+            abort(400, f'El JSON debe tener "tipo" y "columnas"')
 
         tipo = input['tipo']
         columnas = input['columnas']
@@ -377,6 +377,36 @@ def editar_catalogo():
 
     except Exception as e:
         return f'Error al editar el catalogo: {str(e)}', 500
+
+# Ruta para devolver libros dado un termino de busqueda
+@app.route('/api/eliminarLibro', methods=['POST'])
+def eliminar_libro():
+    try:
+        # Obtener el JSON del cuerpo de la solicitud
+        input = request.get_json()
+
+        if not (len(input) == 1 and 'isbn' in input):
+            abort(400, f'El JSON debe tener solo el campo "isbn"')
+
+        isbn = input['isbn']
+        
+        cur = mysql.connection.cursor() 
+
+        query = f'delete from libros where isbn = "{isbn}"'
+
+        cur.execute(query)
+        mysql.connection.commit()
+
+        # Verificar si se realizaron cambios
+        if cur.rowcount == 0:
+            return jsonify({'message':f'El pedido realizado no ha modificado ninguna fila. Verifique el ISBN ingresado'}),400
+
+        cur.close()
+        return jsonify({'message':f'Libro eliminado correctamente con ISBN: {isbn}'}), 200
+        
+
+    except Exception as e:
+        return f'Error al intentar realizar la eliminacion del libro: {str(e)}', 500
 
 # RUTAS PUPITRES
 # Ruta para cargar datos desde el archivo CSV a la tabla pupitres
